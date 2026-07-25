@@ -5,6 +5,11 @@
   "builtin-baseline": "40f3c709db80acf154ac4b17a1f83c564ebd022e",
   "dependencies": [
     "sdl3",
-    "sdl3-image"
+    {
+      "name": "sdl3-image",
+      "features": [
+        "png"
+      ]
+    }
   ]
 }
