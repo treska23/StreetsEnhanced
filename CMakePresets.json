@@ -3,9 +3,9 @@
   "configurePresets": [
     {
       "name": "x64-debug",
-      "displayName": "Windows x64 Debug",
+      "displayName": "Windows x64 Debug (CLI)",
       "generator": "Visual Studio 18 2026",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "binaryDir": "${sourceDir}/out/cli/${presetName}",
       "architecture": {
         "value": "x64",
         "strategy": "set"
@@ -20,9 +20,9 @@
     },
     {
       "name": "x64-release",
-      "displayName": "Windows x64 Release",
+      "displayName": "Windows x64 Release (CLI)",
       "inherits": "x64-debug",
-      "binaryDir": "${sourceDir}/out/build/${presetName}"
+      "binaryDir": "${sourceDir}/out/cli/${presetName}"
     }
   ],
   "buildPresets": [
