@@ -10,18 +10,11 @@
 
 namespace
 {
-constexpr int LogicalWidth = 384;
-constexpr int LogicalHeight = 216;
+constexpr int LogicalWidth = 1920;
+constexpr int LogicalHeight = 1080;
 constexpr int WindowWidth = 1920;
 constexpr int WindowHeight = 1080;
-
-constexpr int OriginalScreenWidth = 256;
-constexpr int OriginalScreenHeight = 192;
-constexpr int OriginalHudHeight = 16;
-constexpr int OriginalStageHeight = 176;
-
-constexpr int OriginalViewportLeft = (LogicalWidth - OriginalScreenWidth) / 2;
-constexpr int OriginalViewportTop = (LogicalHeight - OriginalScreenHeight) / 2;
+constexpr float CameraStep = 64.0F;
 
 const std::filesystem::path Round1MapPath =
     std::filesystem::path{STREETS_SOURCE_DIR} /
@@ -29,12 +22,6 @@ const std::filesystem::path Round1MapPath =
     "ReferenceSheets" /
     "Stages" /
     "Round1.png";
-
-enum class ViewMode
-{
-    Original4x3,
-    Widescreen16x9
-};
 
 struct WindowDeleter
 {
@@ -64,7 +51,7 @@ using WindowPtr = std::unique_ptr<SDL_Window, WindowDeleter>;
 using RendererPtr = std::unique_ptr<SDL_Renderer, RendererDeleter>;
 using TexturePtr = std::unique_ptr<SDL_Texture, TextureDeleter>;
 
-TexturePtr LoadNearestTexture(SDL_Renderer* renderer, const std::filesystem::path& path)
+TexturePtr LoadBackgroundTexture(SDL_Renderer* renderer, const std::filesystem::path& path)
 {
     SDL_Texture* texture = IMG_LoadTexture(renderer, path.string().c_str());
     if (texture == nullptr)
@@ -74,9 +61,11 @@ TexturePtr LoadNearestTexture(SDL_Renderer* renderer, const std::filesystem::pat
         return {};
     }
 
-    if (!SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST))
+    // El nuevo fondo es una ilustracion HD, no pixel art. El filtrado lineal
+    // evita que se vea dentado al adaptarlo a la ventana manteniendo proporciones.
+    if (!SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR))
     {
-        std::cerr << "No se pudo activar nearest-neighbour: " << SDL_GetError() << '\n';
+        std::cerr << "No se pudo activar el filtrado lineal: " << SDL_GetError() << '\n';
         SDL_DestroyTexture(texture);
         return {};
     }
@@ -84,26 +73,10 @@ TexturePtr LoadNearestTexture(SDL_Renderer* renderer, const std::filesystem::pat
     return TexturePtr{texture};
 }
 
-void DrawMissingAsset(SDL_Renderer* renderer, const SDL_FRect& area)
+void DrawMissingAsset(SDL_Renderer* renderer)
 {
     SDL_SetRenderDrawColor(renderer, 34, 18, 48, 255);
-    SDL_RenderFillRect(renderer, &area);
-
-    constexpr float TileSize = 8.0F;
-    for (float y = area.y; y < area.y + area.h; y += TileSize)
-    {
-        for (float x = area.x; x < area.x + area.w; x += TileSize)
-        {
-            const auto tileX = static_cast<int>((x - area.x) / TileSize);
-            const auto tileY = static_cast<int>((y - area.y) / TileSize);
-            if (((tileX + tileY) & 1) == 0)
-            {
-                SDL_FRect tile{x, y, TileSize, TileSize};
-                SDL_SetRenderDrawColor(renderer, 54, 28, 72, 255);
-                SDL_RenderFillRect(renderer, &tile);
-            }
-        }
-    }
+    SDL_RenderClear(renderer);
 }
 }
 
@@ -119,10 +92,10 @@ int main(int, char**)
     SDL_Renderer* rawRenderer = nullptr;
 
     if (!SDL_CreateWindowAndRenderer(
-            "Streets Enhanced",
+            "Streets Enhanced - Round 1 HD",
             WindowWidth,
             WindowHeight,
-            SDL_WINDOW_RESIZABLE,
+            SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
             &rawWindow,
             &rawRenderer))
     {
@@ -134,27 +107,27 @@ int main(int, char**)
     WindowPtr window{rawWindow};
     RendererPtr renderer{rawRenderer};
 
+    // El lienzo interno del juego ya es Full HD. Si la ventana cambia de tamano,
+    // SDL conserva el formato 16:9 mediante letterbox, sin deformar la imagen.
     if (!SDL_SetRenderLogicalPresentation(
             renderer.get(),
             LogicalWidth,
             LogicalHeight,
-            SDL_LOGICAL_PRESENTATION_INTEGER_SCALE))
+            SDL_LOGICAL_PRESENTATION_LETTERBOX))
     {
         std::cerr << "SDL_SetRenderLogicalPresentation failed: " << SDL_GetError() << '\n';
         SDL_Quit();
         return EXIT_FAILURE;
     }
 
-    SDL_SetRenderDrawBlendMode(renderer.get(), SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawBlendMode(renderer.get(), SDL_BLENDMODE_BLEND);
 
-    ViewMode viewMode = ViewMode::Original4x3;
-    int cameraX = 0;
-    TexturePtr round1Map = LoadNearestTexture(renderer.get(), Round1MapPath);
+    float cameraX = 0.0F;
+    TexturePtr round1Map = LoadBackgroundTexture(renderer.get(), Round1MapPath);
 
-    std::cout << "Controles de la prueba:\n"
-              << "  F1: encuadre original 256x192\n"
-              << "  F2: encuadre panoramico 384x216\n"
+    std::cout << "Prueba Round 1 en 1920x1080:\n"
               << "  Flechas izquierda/derecha: mover camara\n"
+              << "  Inicio: volver al principio\n"
               << "  R: recargar Round1.png\n"
               << "  Esc: salir\n"
               << "Ruta esperada del mapa: " << Round1MapPath << '\n';
@@ -176,21 +149,18 @@ int main(int, char**)
                 case SDLK_ESCAPE:
                     running = false;
                     break;
-                case SDLK_F1:
-                    viewMode = ViewMode::Original4x3;
-                    break;
-                case SDLK_F2:
-                    viewMode = ViewMode::Widescreen16x9;
-                    break;
                 case SDLK_LEFT:
-                    cameraX = std::max(0, cameraX - 8);
+                    cameraX -= CameraStep;
                     break;
                 case SDLK_RIGHT:
-                    cameraX += 8;
+                    cameraX += CameraStep;
+                    break;
+                case SDLK_HOME:
+                    cameraX = 0.0F;
                     break;
                 case SDLK_R:
-                    round1Map = LoadNearestTexture(renderer.get(), Round1MapPath);
-                    cameraX = 0;
+                    round1Map = LoadBackgroundTexture(renderer.get(), Round1MapPath);
+                    cameraX = 0.0F;
                     break;
                 default:
                     break;
@@ -201,46 +171,50 @@ int main(int, char**)
         SDL_SetRenderDrawColor(renderer.get(), 0, 0, 0, 255);
         SDL_RenderClear(renderer.get());
 
-        const bool originalMode = viewMode == ViewMode::Original4x3;
-        const float viewportLeft = originalMode ? static_cast<float>(OriginalViewportLeft) : 0.0F;
-        const float viewportWidth = originalMode ? static_cast<float>(OriginalScreenWidth) : static_cast<float>(LogicalWidth);
-        const float viewportTop = static_cast<float>(OriginalViewportTop);
-
-        SDL_FRect hudArea{
-            viewportLeft,
-            viewportTop,
-            viewportWidth,
-            static_cast<float>(OriginalHudHeight)};
-        SDL_SetRenderDrawColor(renderer.get(), 8, 8, 16, 255);
-        SDL_RenderFillRect(renderer.get(), &hudArea);
-
-        SDL_FRect stageArea{
-            viewportLeft,
-            viewportTop + static_cast<float>(OriginalHudHeight),
-            viewportWidth,
-            static_cast<float>(OriginalStageHeight)};
-
         if (round1Map)
         {
             float textureWidth = 0.0F;
             float textureHeight = 0.0F;
             SDL_GetTextureSize(round1Map.get(), &textureWidth, &textureHeight);
 
-            const int sourceWidth = originalMode ? OriginalScreenWidth : LogicalWidth;
-            const int maximumCameraX = std::max(0, static_cast<int>(textureWidth) - sourceWidth);
-            cameraX = std::clamp(cameraX, 0, maximumCameraX);
+            const float viewportAspect =
+                static_cast<float>(LogicalWidth) / static_cast<float>(LogicalHeight);
+            const float textureAspect = textureWidth / textureHeight;
 
-            SDL_FRect source{
-                static_cast<float>(cameraX),
+            SDL_FRect source{};
+            if (textureAspect >= viewportAspect)
+            {
+                // El escenario es mas largo que 16:9: se muestra toda su altura y
+                // la camara recorre horizontalmente el resto del nivel.
+                source.w = textureHeight * viewportAspect;
+                source.h = textureHeight;
+                const float maximumCameraX = std::max(0.0F, textureWidth - source.w);
+                cameraX = std::clamp(cameraX, 0.0F, maximumCameraX);
+                source.x = cameraX;
+                source.y = 0.0F;
+            }
+            else
+            {
+                // Caso defensivo para imagenes menos panoramicas: recorte vertical
+                // centrado, siempre sin deformar la relacion de aspecto.
+                source.w = textureWidth;
+                source.h = textureWidth / viewportAspect;
+                source.x = 0.0F;
+                source.y = std::max(0.0F, (textureHeight - source.h) * 0.5F);
+                cameraX = 0.0F;
+            }
+
+            const SDL_FRect destination{
                 0.0F,
-                std::min(static_cast<float>(sourceWidth), textureWidth),
-                std::min(static_cast<float>(OriginalStageHeight), textureHeight)};
+                0.0F,
+                static_cast<float>(LogicalWidth),
+                static_cast<float>(LogicalHeight)};
 
-            SDL_RenderTexture(renderer.get(), round1Map.get(), &source, &stageArea);
+            SDL_RenderTexture(renderer.get(), round1Map.get(), &source, &destination);
         }
         else
         {
-            DrawMissingAsset(renderer.get(), stageArea);
+            DrawMissingAsset(renderer.get());
         }
 
         SDL_RenderPresent(renderer.get());
