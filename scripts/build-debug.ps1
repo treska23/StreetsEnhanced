@@ -44,7 +44,8 @@ if (-not (Test-Path $vcpkgToolchain)) {
 
 Set-Location $repoRoot
 
-$buildDir = Join-Path $repoRoot "out\build\$preset"
+# La compilacion por consola usa out\cli para no chocar con la cache que mantiene Visual Studio.
+$buildDir = Join-Path $repoRoot "out\cli\$preset"
 Remove-Item -Recurse -Force $buildDir -ErrorAction SilentlyContinue
 
 & cmake --preset $preset
