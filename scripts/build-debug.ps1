@@ -1,16 +1,14 @@
 param(
     [ValidateSet("Debug", "Release")]
-    [string]$Configuration = "Debug"
+    [string]$Configuration = "Debug",
+
+    [string]$VcpkgRoot = "C:\vcpkg"
 )
 
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $preset = if ($Configuration -eq "Release") { "x64-release" } else { "x64-debug" }
-
-if (-not $env:VCPKG_ROOT) {
-    $env:VCPKG_ROOT = "C:\vcpkg"
-}
 
 $vsWhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
 if (-not (Test-Path $vsWhere)) {
@@ -29,13 +27,35 @@ if (-not (Test-Path $devShell)) {
 
 & $devShell -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 
+# Launch-VsDevShell puede apuntar VCPKG_ROOT al vcpkg integrado de Visual Studio.
+# Lo fijamos despues para usar siempre la copia independiente de C:\vcpkg.
+$env:VCPKG_ROOT = $VcpkgRoot
+
+$vcpkgExe = Join-Path $env:VCPKG_ROOT "vcpkg.exe"
+$vcpkgToolchain = Join-Path $env:VCPKG_ROOT "scripts\buildsystems\vcpkg.cmake"
+
+if (-not (Test-Path $vcpkgExe)) {
+    throw "No se encontro vcpkg.exe en: $vcpkgExe"
+}
+
+if (-not (Test-Path $vcpkgToolchain)) {
+    throw "No se encontro el toolchain de vcpkg en: $vcpkgToolchain"
+}
+
 Set-Location $repoRoot
 
 $buildDir = Join-Path $repoRoot "out\build\$preset"
 Remove-Item -Recurse -Force $buildDir -ErrorAction SilentlyContinue
 
-cmake --preset $preset
-cmake --build --preset $preset
+& cmake --preset $preset
+if ($LASTEXITCODE -ne 0) {
+    throw "La configuracion de CMake ha fallado con codigo $LASTEXITCODE."
+}
+
+& cmake --build --preset $preset
+if ($LASTEXITCODE -ne 0) {
+    throw "La compilacion ha fallado con codigo $LASTEXITCODE."
+}
 
 Write-Host ""
 Write-Host "Compilacion completada: $Configuration x64" -ForegroundColor Green
