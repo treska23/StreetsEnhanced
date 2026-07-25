@@ -1,0 +1,223 @@
+﻿{
+    "generatedAtUtc":  "2026-07-25T17:03:20.2820953Z",
+    "assetRoot":  "LocalAssets",
+    "imageCount":  24,
+    "images":  [
+                   {
+                       "fileName":  "Adam Hunter.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Adam Hunter.png",
+                       "extension":  ".png",
+                       "width":  672,
+                       "height":  519,
+                       "sizeBytes":  41988,
+                       "sha256":  "3f54acbfa96ae1aa83cb8ad2be752886df4ee6284f46683736ae5fa6eac58728"
+                   },
+                   {
+                       "fileName":  "Axel Stone.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Axel Stone.png",
+                       "extension":  ".png",
+                       "width":  640,
+                       "height":  527,
+                       "sizeBytes":  44034,
+                       "sha256":  "56d15ce07c20fe58677b0e3c394f8fb210b75b17a2637935b00d4bd272b96b68"
+                   },
+                   {
+                       "fileName":  "Blaze Fielding.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Blaze Fielding.png",
+                       "extension":  ".png",
+                       "width":  712,
+                       "height":  551,
+                       "sizeBytes":  43627,
+                       "sha256":  "617a4387e835d73db9838c5a8959b040449027ef9b34afc30bf15d518641694a"
+                   },
+                   {
+                       "fileName":  "Enemies - Abadede.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Abadede.png",
+                       "extension":  ".png",
+                       "width":  568,
+                       "height":  120,
+                       "sizeBytes":  13714,
+                       "sha256":  "c0d911fd6e032b72d2903b3f046a3f289ba5293a1b5b09c2bfdd5b5c76369c9d"
+                   },
+                   {
+                       "fileName":  "Enemies - Antonio.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Antonio.png",
+                       "extension":  ".png",
+                       "width":  864,
+                       "height":  120,
+                       "sizeBytes":  14128,
+                       "sha256":  "19b573bb08878059bd9a94eb6709b93f20cab151c60429fda5998636efe93da8"
+                   },
+                   {
+                       "fileName":  "Enemies - Bongo.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Bongo.png",
+                       "extension":  ".png",
+                       "width":  984,
+                       "height":  112,
+                       "sizeBytes":  14744,
+                       "sha256":  "b1d13fe5a93622cde2406ffe9fb2a5506a03ac00969e519524473937ae11e953"
+                   },
+                   {
+                       "fileName":  "Enemies - Galsia.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Galsia.png",
+                       "extension":  ".png",
+                       "width":  596,
+                       "height":  216,
+                       "sizeBytes":  20018,
+                       "sha256":  "4fb26e386085910a77e2394ec94097a0a2f637d900db59ef4b94f99a982bf344"
+                   },
+                   {
+                       "fileName":  "Enemies - Hakuyo.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Hakuyo.png",
+                       "extension":  ".png",
+                       "width":  413,
+                       "height":  216,
+                       "sizeBytes":  17767,
+                       "sha256":  "a377bdf75aa45b448e53f2149707bda154f29a1c5f7d56473b2e5d16532ed71c"
+                   },
+                   {
+                       "fileName":  "Enemies - Jack.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Jack.png",
+                       "extension":  ".png",
+                       "width":  400,
+                       "height":  160,
+                       "sizeBytes":  13701,
+                       "sha256":  "6dd3bfce0ae41394503f6c4c6db99d0c5e94875f4896d47eaa4495c3c7506278"
+                   },
+                   {
+                       "fileName":  "Enemies - Mr. X.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Mr. X.png",
+                       "extension":  ".png",
+                       "width":  675,
+                       "height":  120,
+                       "sizeBytes":  13218,
+                       "sha256":  "fe9172ef4597f130572c40b6728a50a4914c51acbde26ddb1db304be8d758d7b"
+                   },
+                   {
+                       "fileName":  "Enemies - Nora.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Nora.png",
+                       "extension":  ".png",
+                       "width":  416,
+                       "height":  216,
+                       "sizeBytes":  16459,
+                       "sha256":  "a8c13f1fc263ee85c55cad05ad67f24f7143a84cbf327a3b95a1629e3515849c"
+                   },
+                   {
+                       "fileName":  "Enemies - Onihime_Yasha.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Onihime_Yasha.png",
+                       "extension":  ".png",
+                       "width":  434,
+                       "height":  104,
+                       "sizeBytes":  9295,
+                       "sha256":  "54c7698da238f10fc648d2d547eb6d6eb141d35cf10b701b6288171b30737c3a"
+                   },
+                   {
+                       "fileName":  "Enemies - SMS Boss.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - SMS Boss.png",
+                       "extension":  ".png",
+                       "width":  521,
+                       "height":  96,
+                       "sizeBytes":  8750,
+                       "sha256":  "a5d46c0f0b06f8dbf96b74c5303c31eab89110d0d5a2155b302dcd1c719e8dc3"
+                   },
+                   {
+                       "fileName":  "Enemies - Souther.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Souther.png",
+                       "extension":  ".png",
+                       "width":  704,
+                       "height":  120,
+                       "sizeBytes":  15376,
+                       "sha256":  "9d46cb7195bb8eff1b91c9c0ef58aa645dd1d9267e5e911dbb9f628ea0665c7d"
+                   },
+                   {
+                       "fileName":  "Enemies - Y. Signal.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Enemies - Y. Signal.png",
+                       "extension":  ".png",
+                       "width":  392,
+                       "height":  216,
+                       "sizeBytes":  18168,
+                       "sha256":  "84849292e62ff94f124f4d8d5dba4204f803e492f7b673a379d619c951719e99"
+                   },
+                   {
+                       "fileName":  "Font.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Font.png",
+                       "extension":  ".png",
+                       "width":  200,
+                       "height":  161,
+                       "sizeBytes":  8141,
+                       "sha256":  "afefff54b4c69e705a7cea44937a1d8625ea895c579df24cc853b53825d68882"
+                   },
+                   {
+                       "fileName":  "Round1.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round1.png",
+                       "extension":  ".png",
+                       "width":  2040,
+                       "height":  176,
+                       "sizeBytes":  18141,
+                       "sha256":  "b4639c38b5526727dbc305744ab92defdf3ead29d8f9e87d68b7c136515e6cf4"
+                   },
+                   {
+                       "fileName":  "Round2.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round2.png",
+                       "extension":  ".png",
+                       "width":  2040,
+                       "height":  176,
+                       "sizeBytes":  16124,
+                       "sha256":  "dc490f0866120c98968cd4105cafc4d4a6a11e0ac395e0b31f6db251f1710ab2"
+                   },
+                   {
+                       "fileName":  "Round3.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round3.png",
+                       "extension":  ".png",
+                       "width":  2040,
+                       "height":  176,
+                       "sizeBytes":  16671,
+                       "sha256":  "37d3e4de8c307ba32678c214393a965de44553c2bb3904976ef7feb3a17a6e79"
+                   },
+                   {
+                       "fileName":  "Round4.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round4.png",
+                       "extension":  ".png",
+                       "width":  2040,
+                       "height":  176,
+                       "sizeBytes":  14238,
+                       "sha256":  "fc540aa85418e2579a135ffc23cf9a09eabf3b3be31c24ba565fc2169d0d2662"
+                   },
+                   {
+                       "fileName":  "Round5.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round5.png",
+                       "extension":  ".png",
+                       "width":  3576,
+                       "height":  176,
+                       "sizeBytes":  12014,
+                       "sha256":  "6e7447a606622a78ff425227e72d1433fdaa7d5d3f35f66aaf2fb0dc763b794d"
+                   },
+                   {
+                       "fileName":  "Round6.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round6.png",
+                       "extension":  ".png",
+                       "width":  3576,
+                       "height":  176,
+                       "sizeBytes":  21702,
+                       "sha256":  "d5d7ee51ff9d6fd77e50a3d3d28a6359c90d9ff3ab96a1f46aa94408e4626538"
+                   },
+                   {
+                       "fileName":  "Round7.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round7.png",
+                       "extension":  ".png",
+                       "width":  248,
+                       "height":  1408,
+                       "sizeBytes":  9150,
+                       "sha256":  "1bbd5c70a3e0d573fab0c589a0634c5d2840cb761782c974d0ecdfae2fb7b9fe"
+                   },
+                   {
+                       "fileName":  "Round8.png",
+                       "relativePath":  "LocalAssets/ReferenceSheets/Stages/Round8.png",
+                       "extension":  ".png",
+                       "width":  3825,
+                       "height":  176,
+                       "sizeBytes":  22169,
+                       "sha256":  "6b620b696018ad3006ed8e983e54071d9b1b190a46c6eae15f9a8d1745a8b0e9"
+                   }
+               ]
+}
