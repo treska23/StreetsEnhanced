@@ -1,0 +1,27 @@
+# Build output
+/build/
+/out/
+/.vs/
+/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Visual Studio
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Local proprietary/reference assets
+/LocalAssets/
+/AssetsGenerated/
+/ReferenceAssets/
+*.sms
+*.bin
+*.rom
+
+# Temporary files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
