@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -18,15 +19,23 @@ constexpr int LogicalWidth = 1920;
 constexpr int LogicalHeight = 1080;
 constexpr int WindowWidth = 1920;
 constexpr int WindowHeight = 1080;
-constexpr float CameraStep = 64.0F;
 
 constexpr std::size_t AxelIdleUniqueFrameCount = 3;
+constexpr std::size_t AxelWalkFrameCount = 4;
 constexpr Uint64 AxelIdleFrameDurationMs = 160;
+constexpr Uint64 AxelWalkFrameDurationMs = 110;
+
 constexpr float AxelDefaultFrameHeight = 440.0F;
 constexpr float AxelMinimumFrameHeight = 220.0F;
 constexpr float AxelMaximumFrameHeight = 720.0F;
 constexpr float AxelScaleStep = 20.0F;
-constexpr float AxelFeetY = 1015.0F;
+
+constexpr float AxelHorizontalSpeed = 430.0F;
+constexpr float AxelVerticalSpeed = 280.0F;
+constexpr float AxelMinimumFeetY = 760.0F;
+constexpr float AxelMaximumFeetY = 1015.0F;
+constexpr float CameraLeftMargin = 620.0F;
+constexpr float CameraRightMargin = 1300.0F;
 
 const std::filesystem::path AssetsRoot =
     std::filesystem::path{STREETS_SOURCE_DIR} /
@@ -37,6 +46,7 @@ const std::filesystem::path AssetsRoot =
 const std::filesystem::path Round1MapPath = AssetsRoot / "Round1.png";
 const std::filesystem::path AxelFolderPath = AssetsRoot / "Axel Stone";
 const std::filesystem::path AxelIdleFramesPath = AxelFolderPath / "Idle";
+const std::filesystem::path AxelWalkFramesPath = AxelFolderPath / "Walk";
 
 struct WindowDeleter
 {
@@ -70,6 +80,12 @@ struct Animation
     std::vector<AnimationFrame> frames;
     std::vector<std::size_t> playbackOrder;
     float referenceHeight = 0.0F;
+};
+
+enum class PlayerAnimationState
+{
+    Idle,
+    Walk
 };
 
 TexturePtr LoadTexture(
@@ -141,39 +157,8 @@ int ExtractFrameNumber(const std::filesystem::path& path)
     return result;
 }
 
-std::vector<std::filesystem::path> FindIdleFrameFiles()
+void SortFrameFiles(std::vector<std::filesystem::path>& files)
 {
-    std::vector<std::filesystem::path> files;
-
-    if (std::filesystem::is_directory(AxelIdleFramesPath))
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(AxelIdleFramesPath))
-        {
-            if (entry.is_regular_file() && IsPng(entry.path()))
-            {
-                files.push_back(entry.path());
-            }
-        }
-    }
-
-    if (files.empty() && std::filesystem::is_directory(AxelFolderPath))
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(AxelFolderPath))
-        {
-            if (!entry.is_regular_file() || !IsPng(entry.path()))
-            {
-                continue;
-            }
-
-            const std::string name = ToLower(entry.path().stem().string());
-            if (name.find("idle") != std::string::npos &&
-                name != "axel stone_idle")
-            {
-                files.push_back(entry.path());
-            }
-        }
-    }
-
     std::sort(
         files.begin(),
         files.end(),
@@ -188,29 +173,79 @@ std::vector<std::filesystem::path> FindIdleFrameFiles()
             return ToLower(left.filename().string()) <
                    ToLower(right.filename().string());
         });
+}
 
-    if (files.size() > AxelIdleUniqueFrameCount)
+std::vector<std::filesystem::path> FindAnimationFrameFiles(
+    const std::filesystem::path& stateFolder,
+    const std::string& stateName,
+    std::size_t maximumFrames)
+{
+    std::vector<std::filesystem::path> files;
+
+    if (std::filesystem::is_directory(stateFolder))
     {
-        std::cout << "Se han encontrado " << files.size()
-                  << " PNG, pero el Idle usara solo los tres primeros.\n";
-        files.resize(AxelIdleUniqueFrameCount);
+        for (const auto& entry : std::filesystem::directory_iterator(stateFolder))
+        {
+            if (entry.is_regular_file() && IsPng(entry.path()))
+            {
+                files.push_back(entry.path());
+            }
+        }
+    }
+
+    // Compatibilidad por si los PNG se guardaron directamente en "Axel Stone".
+    if (files.empty() && std::filesystem::is_directory(AxelFolderPath))
+    {
+        const std::string lowerStateName = ToLower(stateName);
+        for (const auto& entry : std::filesystem::directory_iterator(AxelFolderPath))
+        {
+            if (!entry.is_regular_file() || !IsPng(entry.path()))
+            {
+                continue;
+            }
+
+            const std::string name = ToLower(entry.path().stem().string());
+            if (name.find(lowerStateName) != std::string::npos)
+            {
+                files.push_back(entry.path());
+            }
+        }
+    }
+
+    SortFrameFiles(files);
+
+    if (files.size() > maximumFrames)
+    {
+        std::cout << stateName << ": encontrados " << files.size()
+                  << " PNG; se usaran los " << maximumFrames
+                  << " primeros.\n";
+        files.resize(maximumFrames);
     }
 
     return files;
 }
 
-Animation LoadIdleAnimation(SDL_Renderer* renderer)
+Animation LoadAnimation(
+    SDL_Renderer* renderer,
+    const std::filesystem::path& stateFolder,
+    const std::string& stateName,
+    std::size_t maximumFrames,
+    bool pingPong)
 {
     Animation animation;
-    const auto files = FindIdleFrameFiles();
+    const auto files =
+        FindAnimationFrameFiles(stateFolder, stateName, maximumFrames);
 
     if (files.empty())
     {
-        std::cerr
-            << "No se encontraron PNG separados para el Idle.\n"
-            << "Carpeta esperada: " << AxelIdleFramesPath << '\n';
+        std::cerr << "No se encontraron PNG para " << stateName << ".\n"
+                  << "Carpeta esperada: " << stateFolder << '\n';
         return animation;
     }
+
+    float firstWidth = 0.0F;
+    float firstHeight = 0.0F;
+    bool dimensionsDiffer = false;
 
     for (const auto& path : files)
     {
@@ -223,25 +258,37 @@ Animation LoadIdleAnimation(SDL_Renderer* renderer)
         float width = 0.0F;
         float height = 0.0F;
         SDL_GetTextureSize(texture.get(), &width, &height);
+
+        if (animation.frames.empty())
+        {
+            firstWidth = width;
+            firstHeight = height;
+        }
+        else if (width != firstWidth || height != firstHeight)
+        {
+            dimensionsDiffer = true;
+        }
+
         animation.referenceHeight = std::max(animation.referenceHeight, height);
         animation.frames.push_back(
             AnimationFrame{path, std::move(texture), width, height});
     }
 
-    if (animation.frames.size() >= 3)
+    for (std::size_t index = 0; index < animation.frames.size(); ++index)
     {
-        animation.playbackOrder = {0, 1, 2, 1};
-    }
-    else if (animation.frames.size() == 2)
-    {
-        animation.playbackOrder = {0, 1};
-    }
-    else if (animation.frames.size() == 1)
-    {
-        animation.playbackOrder = {0};
+        animation.playbackOrder.push_back(index);
     }
 
-    std::cout << "Frames Idle usados: " << animation.frames.size() << '\n';
+    if (pingPong && animation.frames.size() > 2)
+    {
+        for (std::size_t index = animation.frames.size() - 2; index > 0; --index)
+        {
+            animation.playbackOrder.push_back(index);
+        }
+    }
+
+    std::cout << stateName << ": " << animation.frames.size()
+              << " frames cargados.\n";
     for (std::size_t index = 0; index < animation.frames.size(); ++index)
     {
         const auto& frame = animation.frames[index];
@@ -249,9 +296,36 @@ Animation LoadIdleAnimation(SDL_Renderer* renderer)
                   << frame.path.filename().string() << " ("
                   << frame.width << "x" << frame.height << ")\n";
     }
-    std::cout << "Secuencia: 1 -> 2 -> 3 -> 2\n";
+
+    if (dimensionsDiffer)
+    {
+        std::cout
+            << "AVISO: los PNG de " << stateName
+            << " no tienen todos el mismo tamano de lienzo. "
+            << "Se alinearan por el centro inferior.\n";
+    }
 
     return animation;
+}
+
+float GetBackgroundWorldWidth(SDL_Texture* texture)
+{
+    if (texture == nullptr)
+    {
+        return static_cast<float>(LogicalWidth);
+    }
+
+    float textureWidth = 0.0F;
+    float textureHeight = 0.0F;
+    SDL_GetTextureSize(texture, &textureWidth, &textureHeight);
+
+    if (textureHeight <= 0.0F)
+    {
+        return static_cast<float>(LogicalWidth);
+    }
+
+    const float scale = static_cast<float>(LogicalHeight) / textureHeight;
+    return std::max(static_cast<float>(LogicalWidth), textureWidth * scale);
 }
 
 void RenderBackground(
@@ -270,14 +344,17 @@ void RenderBackground(
     SDL_FRect source{};
     if (textureAspect >= viewportAspect)
     {
-        source.w = textureHeight * viewportAspect;
-        source.h = textureHeight;
-        cameraX = std::clamp(
-            cameraX,
-            0.0F,
-            std::max(0.0F, textureWidth - source.w));
-        source.x = cameraX;
+        const float textureToWorldScale =
+            static_cast<float>(LogicalHeight) / textureHeight;
+        const float worldWidth = textureWidth * textureToWorldScale;
+        const float maximumCameraX =
+            std::max(0.0F, worldWidth - static_cast<float>(LogicalWidth));
+
+        cameraX = std::clamp(cameraX, 0.0F, maximumCameraX);
+        source.x = cameraX / textureToWorldScale;
         source.y = 0.0F;
+        source.w = static_cast<float>(LogicalWidth) / textureToWorldScale;
+        source.h = textureHeight;
     }
     else
     {
@@ -297,11 +374,14 @@ void RenderBackground(
     SDL_RenderTexture(renderer, texture, &source, &destination);
 }
 
-void RenderAxelIdle(
+void RenderAxel(
     SDL_Renderer* renderer,
     const Animation& animation,
     std::size_t frameIndex,
-    float displayedReferenceHeight)
+    float displayedReferenceHeight,
+    float screenCenterX,
+    float feetY,
+    bool facingLeft)
 {
     if (animation.frames.empty() || animation.referenceHeight <= 0.0F)
     {
@@ -316,12 +396,19 @@ void RenderAxelIdle(
     const float displayedHeight = frame.height * scale;
 
     const SDL_FRect destination{
-        (static_cast<float>(LogicalWidth) - displayedWidth) * 0.5F,
-        AxelFeetY - displayedHeight,
+        screenCenterX - (displayedWidth * 0.5F),
+        feetY - displayedHeight,
         displayedWidth,
         displayedHeight};
 
-    SDL_RenderTexture(renderer, frame.texture.get(), nullptr, &destination);
+    SDL_RenderTextureRotated(
+        renderer,
+        frame.texture.get(),
+        nullptr,
+        &destination,
+        0.0,
+        nullptr,
+        facingLeft ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
 }
 }
 
@@ -337,7 +424,7 @@ int main(int, char**)
     SDL_Renderer* rawRenderer = nullptr;
 
     if (!SDL_CreateWindowAndRenderer(
-            "Streets Enhanced - Axel Idle",
+            "Streets Enhanced - Axel Walk Test",
             WindowWidth,
             WindowHeight,
             SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
@@ -367,25 +454,44 @@ int main(int, char**)
 
     SDL_SetRenderDrawBlendMode(renderer.get(), SDL_BLENDMODE_BLEND);
 
+    TexturePtr round1Map =
+        LoadTexture(renderer.get(), Round1MapPath, SDL_SCALEMODE_LINEAR);
+    Animation axelIdle = LoadAnimation(
+        renderer.get(),
+        AxelIdleFramesPath,
+        "Idle",
+        AxelIdleUniqueFrameCount,
+        true);
+    Animation axelWalk = LoadAnimation(
+        renderer.get(),
+        AxelWalkFramesPath,
+        "Walk",
+        AxelWalkFrameCount,
+        false);
+
     float cameraX = 0.0F;
     float axelFrameHeight = AxelDefaultFrameHeight;
+    float playerWorldX = 960.0F;
+    float playerFeetY = AxelMaximumFeetY;
+    bool facingLeft = false;
     bool animationEnabled = true;
+
+    PlayerAnimationState animationState = PlayerAnimationState::Idle;
     std::size_t playbackStep = 0;
     std::size_t currentFrame = 0;
     Uint64 lastFrameChangeAt = SDL_GetTicks();
-
-    TexturePtr round1Map =
-        LoadTexture(renderer.get(), Round1MapPath, SDL_SCALEMODE_LINEAR);
-    Animation axelIdle = LoadIdleAnimation(renderer.get());
+    Uint64 previousTick = SDL_GetTicks();
 
     std::cout
         << "Controles:\n"
-        << "  Flechas izquierda/derecha: mover camara\n"
+        << "  Flechas o WASD: andar\n"
         << "  + / -: cambiar tamano de Axel\n"
-        << "  Espacio: pausar/reanudar\n"
-        << "  1, 2, 3: mostrar un frame\n"
-        << "  R: recargar recursos\n"
-        << "  Esc: salir\n";
+        << "  Espacio: pausar/reanudar la animacion\n"
+        << "  Inicio: volver a la posicion inicial\n"
+        << "  R: recargar fondo, Idle y Walk\n"
+        << "  Esc: salir\n"
+        << "Carpeta Walk: " << AxelWalkFramesPath << '\n'
+        << "Se usan como maximo los cuatro primeros PNG de Walk.\n";
 
     bool running = true;
     while (running)
@@ -399,37 +505,21 @@ int main(int, char**)
                 continue;
             }
 
-            if (event.type != SDL_EVENT_KEY_DOWN)
+            if (event.type != SDL_EVENT_KEY_DOWN || event.key.repeat)
             {
                 continue;
             }
 
-            const SDL_Keycode key = event.key.key;
-            if (key >= SDLK_1 && key <= SDLK_3)
-            {
-                const std::size_t requested =
-                    static_cast<std::size_t>(key - SDLK_1);
-                if (requested < axelIdle.frames.size())
-                {
-                    currentFrame = requested;
-                    animationEnabled = false;
-                }
-                continue;
-            }
-
-            switch (key)
+            switch (event.key.key)
             {
             case SDLK_ESCAPE:
                 running = false;
                 break;
-            case SDLK_LEFT:
-                cameraX -= CameraStep;
-                break;
-            case SDLK_RIGHT:
-                cameraX += CameraStep;
-                break;
             case SDLK_HOME:
                 cameraX = 0.0F;
+                playerWorldX = 960.0F;
+                playerFeetY = AxelMaximumFeetY;
+                facingLeft = false;
                 break;
             case SDLK_SPACE:
                 animationEnabled = !animationEnabled;
@@ -442,18 +532,30 @@ int main(int, char**)
                 axelFrameHeight = std::min(
                     AxelMaximumFrameHeight,
                     axelFrameHeight + AxelScaleStep);
+                std::cout << "Altura de Axel: " << axelFrameHeight << " px\n";
                 break;
             case SDLK_MINUS:
             case SDLK_KP_MINUS:
                 axelFrameHeight = std::max(
                     AxelMinimumFrameHeight,
                     axelFrameHeight - AxelScaleStep);
+                std::cout << "Altura de Axel: " << axelFrameHeight << " px\n";
                 break;
             case SDLK_R:
                 round1Map =
                     LoadTexture(renderer.get(), Round1MapPath, SDL_SCALEMODE_LINEAR);
-                axelIdle = LoadIdleAnimation(renderer.get());
-                cameraX = 0.0F;
+                axelIdle = LoadAnimation(
+                    renderer.get(),
+                    AxelIdleFramesPath,
+                    "Idle",
+                    AxelIdleUniqueFrameCount,
+                    true);
+                axelWalk = LoadAnimation(
+                    renderer.get(),
+                    AxelWalkFramesPath,
+                    "Walk",
+                    AxelWalkFrameCount,
+                    false);
                 playbackStep = 0;
                 currentFrame = 0;
                 lastFrameChangeAt = SDL_GetTicks();
@@ -463,18 +565,114 @@ int main(int, char**)
             }
         }
 
-        if (animationEnabled && !axelIdle.playbackOrder.empty())
+        const Uint64 now = SDL_GetTicks();
+        const float deltaSeconds = std::min(
+            static_cast<float>(now - previousTick) / 1000.0F,
+            0.05F);
+        previousTick = now;
+
+        const bool* keyboard = SDL_GetKeyboardState(nullptr);
+        float horizontalDirection = 0.0F;
+        float verticalDirection = 0.0F;
+
+        if (keyboard[SDL_SCANCODE_LEFT] || keyboard[SDL_SCANCODE_A])
         {
-            const Uint64 now = SDL_GetTicks();
-            const Uint64 elapsed = now - lastFrameChangeAt;
-            if (elapsed >= AxelIdleFrameDurationMs)
+            horizontalDirection -= 1.0F;
+        }
+        if (keyboard[SDL_SCANCODE_RIGHT] || keyboard[SDL_SCANCODE_D])
+        {
+            horizontalDirection += 1.0F;
+        }
+        if (keyboard[SDL_SCANCODE_UP] || keyboard[SDL_SCANCODE_W])
+        {
+            verticalDirection -= 1.0F;
+        }
+        if (keyboard[SDL_SCANCODE_DOWN] || keyboard[SDL_SCANCODE_S])
+        {
+            verticalDirection += 1.0F;
+        }
+
+        const bool isMoving =
+            horizontalDirection != 0.0F || verticalDirection != 0.0F;
+
+        if (isMoving)
+        {
+            const float length = std::sqrt(
+                (horizontalDirection * horizontalDirection) +
+                (verticalDirection * verticalDirection));
+            horizontalDirection /= length;
+            verticalDirection /= length;
+
+            playerWorldX +=
+                horizontalDirection * AxelHorizontalSpeed * deltaSeconds;
+            playerFeetY +=
+                verticalDirection * AxelVerticalSpeed * deltaSeconds;
+
+            if (horizontalDirection < 0.0F)
             {
-                const Uint64 advance = elapsed / AxelIdleFrameDurationMs;
+                facingLeft = true;
+            }
+            else if (horizontalDirection > 0.0F)
+            {
+                facingLeft = false;
+            }
+        }
+
+        const float worldWidth = GetBackgroundWorldWidth(round1Map.get());
+        playerWorldX = std::clamp(playerWorldX, 120.0F, worldWidth - 120.0F);
+        playerFeetY = std::clamp(
+            playerFeetY,
+            AxelMinimumFeetY,
+            AxelMaximumFeetY);
+
+        float playerScreenX = playerWorldX - cameraX;
+        if (playerScreenX > CameraRightMargin)
+        {
+            cameraX = playerWorldX - CameraRightMargin;
+        }
+        else if (playerScreenX < CameraLeftMargin)
+        {
+            cameraX = playerWorldX - CameraLeftMargin;
+        }
+
+        const float maximumCameraX =
+            std::max(0.0F, worldWidth - static_cast<float>(LogicalWidth));
+        cameraX = std::clamp(cameraX, 0.0F, maximumCameraX);
+        playerScreenX = playerWorldX - cameraX;
+
+        const PlayerAnimationState requestedState =
+            isMoving && !axelWalk.frames.empty()
+                ? PlayerAnimationState::Walk
+                : PlayerAnimationState::Idle;
+
+        if (requestedState != animationState)
+        {
+            animationState = requestedState;
+            playbackStep = 0;
+            currentFrame = 0;
+            lastFrameChangeAt = now;
+        }
+
+        const Animation& activeAnimation =
+            animationState == PlayerAnimationState::Walk
+                ? axelWalk
+                : axelIdle;
+        const Uint64 activeFrameDuration =
+            animationState == PlayerAnimationState::Walk
+                ? AxelWalkFrameDurationMs
+                : AxelIdleFrameDurationMs;
+
+        if (animationEnabled && !activeAnimation.playbackOrder.empty())
+        {
+            const Uint64 elapsed = now - lastFrameChangeAt;
+            if (elapsed >= activeFrameDuration)
+            {
+                const Uint64 advance = elapsed / activeFrameDuration;
                 playbackStep =
                     (playbackStep + static_cast<std::size_t>(advance)) %
-                    axelIdle.playbackOrder.size();
-                currentFrame = axelIdle.playbackOrder[playbackStep];
-                lastFrameChangeAt += advance * AxelIdleFrameDurationMs;
+                    activeAnimation.playbackOrder.size();
+                currentFrame = activeAnimation.playbackOrder[playbackStep];
+                lastFrameChangeAt += advance * activeFrameDuration;
             }
         }
 
@@ -486,15 +684,19 @@ int main(int, char**)
             RenderBackground(renderer.get(), round1Map.get(), cameraX);
         }
 
-        RenderAxelIdle(
+        RenderAxel(
             renderer.get(),
-            axelIdle,
+            activeAnimation,
             currentFrame,
-            axelFrameHeight);
+            axelFrameHeight,
+            playerScreenX,
+            playerFeetY,
+            facingLeft);
 
         SDL_RenderPresent(renderer.get());
     }
 
+    axelWalk.frames.clear();
     axelIdle.frames.clear();
     round1Map.reset();
     renderer.reset();
