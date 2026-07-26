@@ -21,7 +21,7 @@ constexpr int WindowWidth = 1920;
 constexpr int WindowHeight = 1080;
 
 constexpr std::size_t AxelIdleUniqueFrameCount = 3;
-constexpr std::size_t AxelWalkFrameCount = 4;
+constexpr std::size_t AxelWalkFrameCount = 9;
 constexpr Uint64 AxelIdleFrameDurationMs = 160;
 constexpr Uint64 AxelWalkFrameDurationMs = 110;
 
@@ -491,7 +491,7 @@ int main(int, char**)
         << "  R: recargar fondo, Idle y Walk\n"
         << "  Esc: salir\n"
         << "Carpeta Walk: " << AxelWalkFramesPath << '\n'
-        << "Se usan como maximo los cuatro primeros PNG de Walk.\n";
+        << "Se usan como maximo los nueve PNG de Walk, ordenados del 0 al 8.\n";
 
     bool running = true;
     while (running)
